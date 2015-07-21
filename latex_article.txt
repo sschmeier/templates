@@ -1,0 +1,77 @@
+\documentclass[12pt,english]{article}
+\usepackage[T1]{fontenc}
+\usepackage[latin9]{inputenc}
+
+%% page x of y
+%\usepackage{lastpage}
+%\cfoot{Page \thepage\ of \pageref{LastPage} }
+
+%% for graphics
+\usepackage{graphicx}
+
+%% for links
+\usepackage[colorlinks=true, urlcolor=blue]{hyperref} 
+
+%% for source code highlite
+\usepackage{listings}
+%% for colored text etc.
+\usepackage{color}
+\definecolor{light-gray}{gray}{0.95}
+
+%% change paper margins
+\usepackage{geometry}
+\geometry{verbose,tmargin=1.5cm,bmargin=2cm,lmargin=2cm,rmargin=2cm}
+
+%% multi-language support
+\usepackage{babel}
+
+%% USE SANS SERIF FONT
+%\usepackage{helvet}
+%\renewcommand{\familydefault}{\sfdefault}
+
+%%% START %%%
+\begin{document}
+
+%% no paragraph indent at any paragraph
+%\parindent 0pt 
+
+
+% to remove age numbers:
+%\thispagestyle{empty}
+%\pagestyle{empty} 
+
+
+\title{Generic title}
+\author{Sebastian Schmeier}
+\date{today}
+\maketitle
+
+%% no number on current page
+%\thispagestyle{empty}
+%% all following pages no page number
+%\pagestyle{empty}
+
+%%% MAIN TEXT %%%
+\section{Introduction}
+\label{Introduction}
+
+\subsection{The Beginning}
+\label{sec:introduction}
+
+In the research article entitled \textit{``DNA breathing dynamics distinguish binding from nonbinding consensus sites for transcription factor YY1 in cells''}, Alexandrov \textit{et al.} describe a computational approach to tackle the high false positive rates of \textit{in silico} methods for the prediction of transcription factor binding sites (\textbf{TFBSs}).
+
+\noindent Kein Einschub hier im zweien Paragraph! Hier eine email Adresse \href{mailto:s.schmeier@massey.ac.nz}{s.schmeier@massey.ac.nz}
+
+% code box %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\lstset{frame=single, language=Python, numbers=left, backgroundcolor=\color{light-gray}}
+\begin{lstlisting}
+import sys, csv
+
+# this is the main function
+def main():
+    return 'YAY'
+\end{lstlisting}
+% code box %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%% END %%%
+\end{document}

@@ -1,0 +1,152 @@
+#!/usr/bin/env python
+"""
+NAME: xxx
+=========
+
+DESCRIPTION
+===========
+
+INSTALLATION
+============
+
+USAGE
+=====
+
+VERSION HISTORY
+===============
+
+0.1.0   xxxx/xx/xx    Initial version.
+
+"""
+__version__='0.1.0'
+__date__='xxxx/xx/xx'
+__email__='s.schmeier@gmail.com'
+__author__='Sebastian Schmeier'
+import sys, os, os.path, argparse, csv, collections
+import gzip, bz2, zipfile
+import pandas as pd ## first non standard library to be importated
+
+def parse_cmdline():
+    
+    # parse cmd-line -----------------------------------------------------------
+    sDescription = 'Read delimited file.' 
+    sVersion='version %s, date %s' %(__version__,__date__)
+    sEpilog = 'Copyright %s (%s)' %(__author__, __email__)
+
+    oParser = argparse.ArgumentParser(description=sDescription,
+                                      version=sVersion,
+                                      epilog=sEpilog)
+    oParser.add_argument('sFile',
+                         metavar='FILE',
+                         help='Delimited file. [if set to "-" or "stdin" reads from standard in]')
+    oParser.add_argument('-d', '--delimiter',
+                         metavar='STRING',
+                         dest='sDEL',
+                         default='\t',
+                         help='Delimiter used in file.  [default: "tab"]')
+    oParser.add_argument('-f', '--field',
+                         metavar='INT',
+                         type=int,
+                         dest='sFIELD',
+                         default=1,
+                         help='Field / Column in file to use.  [default: 1]')
+    oParser.add_argument('-a', '--header',
+                         dest='bHead',
+                         action='store_true',
+                         default=False,
+                         help='Header in File. Header will be titles. [default: False]')
+    oParser.add_argument('-l', '--labels', 
+                         dest='iLabel',
+                         metavar="INT",
+                         type=int,
+                         default=None,
+                         help='Column number to use as labels. [default: None]')
+    oParser.add_argument('-o', '--out',
+                         metavar='STRING',
+                         dest='sOut',
+                         default=None,
+                         help='Out-file. [default: "stdout"]')
+    oParser.add_argument('--config',
+                         dest = 'sConfig',
+                         metavar='CONFIG-FILE',
+                         default='config.ini',
+                         help='Config-file to read. [default: config.ini]')
+    
+    group1 = oParser.add_argument_group('Plot', 'General plotting arguments:')
+    group1.add_argument('--plot',
+                         dest='bPlot',
+                         action='store_true',
+                         default=False,
+                         help='Plot expresssion')
+    
+    oArgs = oParser.parse_args()
+    return oArgs, oParser
+
+def load_file(s):
+    if s in ['-', 'stdin']:
+        oF = sys.stdin
+    elif s.split('.')[-1] == 'gz':
+        oF = gzip.open(s)
+    elif s.split('.')[-1] == 'bz2':
+        oF = bz2.BZFile(s)
+    elif s.split('.')[-1] == 'zip':
+        oF = zipfile.Zipfile(s)
+    else:
+        oF = open(s)
+
+    return oF
+
+def main():
+    oArgs, oParser = parse_cmdline()
+
+    iF = oArgs.sFIELD - 1
+    if iF < 0: oParser.error('Field -f has to be an integer > 0. EXIT.')
+    
+    oF = load_file(oArgs.sFile)
+
+    if not oArgs.sOut:
+        oFout = sys.stdout
+    elif oArgs.sOut in ['-', 'stdout']:
+        oFout = sys.stdout
+    elif oArgs.sOut.split('.')[-1] == 'gz':
+        oFout = gzip.open(oArgs.sOut, 'wb')
+    else:
+        oFout = open(oArgs.sOut, 'w')
+
+    ## USING a config parser
+    ## from ConfigParser import SafeConfigParser  ## config file reader
+    ## #-------------------------------------------------------
+    ## # Read config file if it exists
+    ## # e.g.
+    ## # [Classes]
+    ## # c1 = 1
+    ## # c2 = 3
+    ## dParams = {}
+    ## if os.path.isfile(oArgs.sConfig):
+    ##     oConfigParser = SafeConfigParser()
+    ##     oConfigParser.read(oArgs.sConfig)
+    ##     for section_name in oConfigParser.sections():
+    ##         for name, value in oConfigParser.items(section_name):
+    ##             dParams[name] = value                   
+    ## #-------------------------------------------------------
+
+    ## PANDAS approach
+    ## Check labels
+    if oArgs.iLabel:
+        if oArgs.iLabel <= 0:
+            oParser.error('Label column number has to be > 0. EXIT.')
+        iLabel = oArgs.iLabel - 1
+    else:
+        iLabel = False
+    oDF = pd.read_csv(oF, sep=oArgs.sDEL, header=header, index_col=iLabel)
+    
+    ### delimited file handler
+    ##oR = csv.reader(oF, delimiter = oArgs.sDEL)
+    ##for a in oR:
+    ##    oFout.write(','.join(a) + '\n')
+    
+    return
+        
+if __name__ == '__main__':
+    sys.exit(main())
+
