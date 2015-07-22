@@ -52,6 +52,7 @@ $endif$
 \usepackage{microtype}
 \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
 }{}
+
 $if(geometry)$
 \usepackage[$for(geometry)$$geometry$$sep$,$endfor$]{geometry}
 $endif$
@@ -144,11 +145,28 @@ $endif$
 
 %% SEB %%
 %% To make the margins wider as the default latex ones. comment for default values
-\usepackage[a4paper, total={6in, 8.5in}]{geometry} 
+\usepackage[a4paper, total={6.5in, 9in}]{geometry} 
 %% Get sans-serif font with variabel "sansserif"
 $if(sansserif)$
 \renewcommand{\familydefault}{\sfdefault}
 $endif$
+%% Fancy header and footer %%
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\pagenumbering{arabic}
+\lhead{\itshape $date$} %% left side header
+\chead{} %% cenetr of header
+\rhead{\itshape{\nouppercase{\leftmark}}} %% right side header
+\renewcommand{\footrulewidth}{0.4pt} %%fotter line; default is 0pt
+%\lfoot{v $version$}
+\lfoot{\itshape $author$}
+$if(version)$
+\cfoot{v$version$}
+$else$
+\cfoot{}
+$endif$
+\rfoot{\thepage}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 $if(title)$
 \title{$title$$if(subtitle)$\\\vspace{0.5em}{\large $subtitle$}$endif$}
@@ -162,6 +180,7 @@ $if(address)$
 $else$
 \author{$author$}
 $endif$
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% SEB %%
 %%$if(author)$
