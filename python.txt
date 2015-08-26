@@ -22,13 +22,17 @@ __version__='0.1.0'
 __date__='xxxx/xx/xx'
 __email__='s.schmeier@gmail.com'
 __author__='Sebastian Schmeier'
-import sys, os, os.path, argparse, csv, collections
-import gzip, bz2, zipfile
-import pandas as pd ## first non standard library to be importated
+import sys, os, os.path, argparse, csv, collections, gzip, bz2, zipfile
+## import pandas as pd ## non standard library to be imported
+
+## When piping stdout into head python raises an exception
+## Ignore SIG_PIPE and don't throw exceptions on it... (http://docs.python.org/library/signal.html)
+from signal import signal, SIGPIPE, SIG_DFL
+signal(SIGPIPE,SIG_DFL)
 
 def parse_cmdline():
     
-    # parse cmd-line -----------------------------------------------------------
+    ## parse cmd-line -----------------------------------------------------------
     sDescription = 'Read delimited file.' 
     sVersion='version %s, date %s' %(__version__,__date__)
     sEpilog = 'Copyright %s (%s)' %(__author__, __email__)
@@ -39,6 +43,11 @@ def parse_cmdline():
     oParser.add_argument('sFile',
                          metavar='FILE',
                          help='Delimited file. [if set to "-" or "stdin" reads from standard in]')
+    oParser.add_argument('-a', '--header',
+                         dest='bHead',
+                         action='store_true',
+                         default=False,
+                         help='Header in File. [default: False]')
     oParser.add_argument('-d', '--delimiter',
                          metavar='STRING',
                          dest='sDEL',
@@ -50,27 +59,23 @@ def parse_cmdline():
                          dest='sFIELD',
                          default=1,
                          help='Field / Column in file to use.  [default: 1]')
-    oParser.add_argument('-a', '--header',
-                         dest='bHead',
-                         action='store_true',
-                         default=False,
-                         help='Header in File. Header will be titles. [default: False]')
-    oParser.add_argument('-l', '--labels', 
-                         dest='iLabel',
-                         metavar="INT",
-                         type=int,
-                         default=None,
-                         help='Column number to use as labels. [default: None]')
+    
+    ## oParser.add_argument('-l', '--labels', 
+    ##                      dest='iLabel',
+    ##                      metavar="INT",
+    ##                      type=int,
+    ##                      default=None,
+    ##                      help='Column number to use as labels. [default: None]')
     oParser.add_argument('-o', '--out',
                          metavar='STRING',
                          dest='sOut',
                          default=None,
                          help='Out-file. [default: "stdout"]')
-    oParser.add_argument('--config',
-                         dest = 'sConfig',
-                         metavar='CONFIG-FILE',
-                         default='config.ini',
-                         help='Config-file to read. [default: config.ini]')
+    ## oParser.add_argument('--config',
+    ##                      dest = 'sConfig',
+    ##                      metavar='CONFIG-FILE',
+    ##                      default='config.ini',
+    ##                      help='Config-file to read. [default: config.ini]')
     
     group1 = oParser.add_argument_group('Plot', 'General plotting arguments:')
     group1.add_argument('--plot',
@@ -83,6 +88,7 @@ def parse_cmdline():
     return oArgs, oParser
 
 def load_file(s):
+    """ LOADING FILES """
     if s in ['-', 'stdin']:
         oF = sys.stdin
     elif s.split('.')[-1] == 'gz':
@@ -93,7 +99,6 @@ def load_file(s):
         oF = zipfile.Zipfile(s)
     else:
         oF = open(s)
-
     return oF
 
 def main():
@@ -132,18 +137,18 @@ def main():
 
     ## PANDAS approach
     ## Check labels
-    if oArgs.iLabel:
-        if oArgs.iLabel <= 0:
-            oParser.error('Label column number has to be > 0. EXIT.')
-        iLabel = oArgs.iLabel - 1
-    else:
-        iLabel = False
-    oDF = pd.read_csv(oF, sep=oArgs.sDEL, header=header, index_col=iLabel)
+    ## if oArgs.iLabel:
+    ##     if oArgs.iLabel <= 0:
+    ##         oParser.error('Label column number has to be > 0. EXIT.')
+    ##     iLabel = oArgs.iLabel - 1
+    ## else:
+    ##     iLabel = False
+    ## oDF = pd.read_csv(oF, sep=oArgs.sDEL, header=header, index_col=iLabel)
     
-    ### delimited file handler
-    ##oR = csv.reader(oF, delimiter = oArgs.sDEL)
-    ##for a in oR:
-    ##    oFout.write(','.join(a) + '\n')
+    ## Delimited file handler
+    oR = csv.reader(oF, delimiter = oArgs.sDEL)
+    for a in oR:
+        oFout.write(','.join(a) + '\n')
     
     return
         
