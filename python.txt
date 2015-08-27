@@ -81,7 +81,7 @@ def parse_cmdline():
     ##                      default='config.ini',
     ##                      help='Config-file to read. [default: config.ini]')
     
-    group1 = oParser.add_argument_group('Threading', 'Multiprocessing arguments:')
+    group1 = oParser.add_argument_group('Threading', 'Multithreading arguments:')
   
     group1.add_argument('-p', '--processes',
                          metavar='INT',
@@ -122,7 +122,7 @@ def my_func(args):
     return (args, res)
     """
     ## Do stuff and create result
-    ## Here we add up arg1 and arg2 and wait a bit.
+    ## EXAMPLE: Here we add up arg1 and arg2 and wait a bit.
     res = args[0] + args[1]
     time.sleep(0.2)
     return (args, res)
@@ -198,23 +198,26 @@ def main():
         aH = oR.next()
     for a in oR:
         ## EXAMPLE: 2 parameters = first two cols for my_func
-        ## TOW INTEGERS TO ADD UP
+        ## EXAMPLE: TWO INTEGERS TO ADD UP
         try: 
             aJobs.append((int(a[0]), int(a[1])))
         except:
             oParser.error('Need 2 integers in column 1 and 2 to add up.')
-        
+    oF.close()
+            
     ## For timing
-    start_time = timer() ## very crude
-    
+    fStart_time = timer() ## very crude
     ## create pool of workers ---------------------
     pool = Pool(processes=iNofProcesses)
     ## pass workers the function and the jobs
-    aResults = pool.map(my_func, aJobs)
+    aResults = pool.imap(my_func, aJobs)
     ## --------------------------------------------
+    fEnd_time = timer()
+    if oArgs.bTIME: sys.stderr.write('RUNTIME(s): %.4f\n' %(fEnd_time - fStart_time))
 
-    end_time = timer()
-    if oArgs.bTIME: sys.stderr.write('RUNTIME(s): %.4f\n' %(end_time - start_time))
+    ## Close the worker pool
+    pool.close()
+    pool.join()
     
     ## Do stuff with the results
     ## for res in aResults:
