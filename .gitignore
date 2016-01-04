@@ -23,3 +23,9 @@ Thumbs.db
 
 ## DJANGO
 irn/migrations/
+
+## LOCAL README
+00README.txt
+
+## Jekyll
+_site

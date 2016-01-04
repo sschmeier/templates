@@ -17,8 +17,11 @@ VERSION HISTORY
 
 0.1.0   xxxx/xx/xx    Initial version.
 
+LICENCE
+=======
+2015, copyright Sebastian Schmeier (s.schmeier@gmail.com), http://sschmeier.com
 
-template version: 1.0 (2015/08/27)
+template version: 1.1 (2015/12/10)
 """
 __version__='0.1.0'
 __date__='xxxx/xx/xx'
@@ -207,23 +210,47 @@ def main():
     oF.close()
             
     # For timing
-    fStart_time = timer() ## very crude
+    fStart_time = timer()  # very crude
     # create pool of workers ---------------------
     pool = Pool(processes=iNofProcesses)
-    # pass workers the function and the jobs
-    # could use *imap* for itertools, but does not work with timing
-    # *imap* has two advantages:
-    #    1. Avoids large in memory lists
-    #    2. Make results ready as soon as they are
-    aResults = pool.map(my_func, aJobs)
+
+    #====================================================================
+    # "chunksize"" usually only makes a noticable performance
+    # difference for very large iterables
+    # Here I set it to one to get the progress bar working nicly
+    # Otherwise it will not give me the correct number of processes left
+    # but chunksize number.
+    chunksize = 1
+    #====================================================================
+    aResults = pool.map_async(my_func, aJobs, chunksize=chunksize)
+    pool.close() # No more work
+
+    iNumJobs = len(aJobs)
+    # Progress bar
+    #==============================
+    # This can be changed to make progressbar bigger or smaller
+    iProgressBarLength = 50
+    #==============================
+    while not aResults.ready():
+        iNumNotDone = aResults._number_left
+        iNumDone = iNumJobs-iNumNotDone
+        iBarDone = iNumDone*iProgressBarLength/iNumJobs
+        sBar = ('=' * iBarDone).ljust(iProgressBarLength)
+        iPercent = int(iNumDone*100/iNumJobs)
+        sys.stderr.write("JOBS (%i): [%s] %s%%\r" % (iNumJobs,
+                                                     sBar,
+                                                     str(iPercent).rjust(3)))
+        sys.stderr.flush()
+        time.sleep(0.1)  # wait a bit: here we test all .1 secs
+    # Finish the progress bar
+    sBar = '=' * iProgressBarLength
+    sys.stderr.write("JOBS (%i): [%s] 100%%\r" % (iNumJobs, sBar))
+    aResults = aResults.get()
     # --------------------------------------------
+
     fEnd_time = timer()
     if oArgs.bTIME: sys.stderr.write('RUNTIME(s): %.4f\n' %(fEnd_time - fStart_time))
 
-    # Close the worker pool
-    pool.close()
-    pool.join()
-    
     # Do stuff with the results
     ## for res in aResults:
     ##     oFout.write( '%s,%s:\t%s\n'%(str(res[0][0]),
