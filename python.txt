@@ -19,9 +19,9 @@ VERSION HISTORY
 
 LICENCE
 =======
-2015, copyright Sebastian Schmeier (s.schmeier@gmail.com), http://sschmeier.com
+2016, copyright Sebastian Schmeier (s.schmeier@gmail.com), http://sschmeier.com
 
-template version: 1.1 (2015/12/10)
+template version: 1.2 (2016/03/04)
 """
 __version__='0.1.0'
 __date__='xxxx/xx/xx'
@@ -44,8 +44,10 @@ def parse_cmdline():
     sEpilog = 'Copyright %s (%s)' %(__author__, __email__)
 
     oParser = argparse.ArgumentParser(description=sDescription,
-                                      version=sVersion,
                                       epilog=sEpilog)
+    
+    oParser.add_argument('--version', action='version', version='%s'%(sVersion))
+    
     oParser.add_argument('sFile',
                          metavar='FILE',
                          help='Delimited file. [if set to "-" or "stdin" reads from standard in]')
