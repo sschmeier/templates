@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-NAME: xxx
+NAME: {{name}}
 =========
 
 DESCRIPTION
@@ -15,18 +15,18 @@ USAGE
 VERSION HISTORY
 ===============
 
-0.1.0   xxxx/xx/xx    Initial version.
+{{version}}   {{date}}    Initial version.
 
 LICENCE
 =======
-2016, copyright Sebastian Schmeier (s.schmeier@gmail.com), http://sschmeier.com
+2016, copyright {{author}} ({{email}}), {{url}}
 
-template version: 1.2 (2016/03/04)
+template version: 1.3 (2016/03/13)
 """
-__version__='0.1.0'
-__date__='xxxx/xx/xx'
-__email__='s.schmeier@gmail.com'
-__author__='Sebastian Schmeier'
+__version__='{{version}}'
+__date__='{{date}}'
+__email__='{{email}}'
+__author__='{{author}}'
 import sys, os, os.path, argparse, csv, collections, gzip, bz2, zipfile, time
 ## import pandas as pd ## non standard library to be imported
 
