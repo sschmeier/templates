@@ -22,7 +22,7 @@ ehthumbs.db
 Thumbs.db
 
 ## DJANGO
-irn/migrations/
+*/migrations/
 
 ## LOCAL README
 00README.txt
