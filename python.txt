@@ -21,103 +21,134 @@ LICENCE
 =======
 2016, copyright {{author}} ({{email}}), {{url}}
 
-template version: 1.3 (2016/03/13)
+template version: 1.4 (2016/05/01)
 """
-__version__='{{version}}'
-__date__='{{date}}'
-__email__='{{email}}'
-__author__='{{author}}'
-import sys, os, os.path, argparse, csv, collections, gzip, bz2, zipfile, time
-## import pandas as pd ## non standard library to be imported
+from timeit import default_timer as timer
+from multiprocessing import Pool
+from ConfigParser import SafeConfigParser
+from signal import signal, SIGPIPE, SIG_DFL
+import sys
+import os
+import os.path
+import argparse
+import csv
+import collections
+import gzip
+import bz2
+import zipfile
+import time
+import pandas as pd  ## non standard library to be imported
 
 # When piping stdout into head python raises an exception
 # Ignore SIG_PIPE and don't throw exceptions on it...
 # (http://docs.python.org/library/signal.html)
-from signal import signal, SIGPIPE, SIG_DFL
-signal(SIGPIPE,SIG_DFL)
+signal(SIGPIPE, SIG_DFL)
+
+__version__ = '{{version}}'
+__date__ = '{{date}}'
+__email__ = '{{email}}'
+__author__ = '{{author}}'
+
 
 def parse_cmdline():
-    
+    """ Parse command-line args. """
     ## parse cmd-line -----------------------------------------------------------
-    sDescription = 'Read delimited file.' 
-    sVersion='version %s, date %s' %(__version__,__date__)
-    sEpilog = 'Copyright %s (%s)' %(__author__, __email__)
+    description = 'Read delimited file.'
+    version = 'version %s, date %s' % (__version__, __date__)
+    epilog = 'Copyright %s (%s)' % (__author__, __email__)
 
-    oParser = argparse.ArgumentParser(description=sDescription,
-                                      epilog=sEpilog)
-    
-    oParser.add_argument('--version', action='version', version='%s'%(sVersion))
-    
-    oParser.add_argument('sFile',
-                         metavar='FILE',
-                         help='Delimited file. [if set to "-" or "stdin" reads from standard in]')
-    oParser.add_argument('-a', '--header',
-                         dest='bHead',
-                         action='store_true',
-                         default=False,
-                         help='Header in File. [default: False]')
-    oParser.add_argument('-d', '--delimiter',
-                         metavar='STRING',
-                         dest='sDEL',
-                         default='\t',
-                         help='Delimiter used in file.  [default: "tab"]')
-    oParser.add_argument('-f', '--field',
-                         metavar='INT',
-                         type=int,
-                         dest='sFIELD',
-                         default=1,
-                         help='Field / Column in file to use.  [default: 1]')
-    oParser.add_argument('-o', '--out',
-                         metavar='STRING',
-                         dest='sOut',
-                         default=None,
-                         help='Out-file. [default: "stdout"]')
-    
+    parser = argparse.ArgumentParser(description=description, epilog=epilog)
+
+    parser.add_argument('--version',
+                        action='version',
+                        version='%s' % (version))
+
+    parser.add_argument(
+        'str_file',
+        metavar='FILE',
+        help=
+        'Delimited file. [if set to "-" or "stdin" reads from standard in]')
+    parser.add_argument('-a',
+                        '--header',
+                        dest='header_exists',
+                        action='store_true',
+                        default=False,
+                        help='Header in File. [default: False]')
+    parser.add_argument('-d',
+                        '--delimiter',
+                        metavar='STRING',
+                        dest='delimiter_str',
+                        default='\t',
+                        help='Delimiter used in file.  [default: "tab"]')
+    parser.add_argument('-f',
+                        '--field',
+                        metavar='INT',
+                        type=int,
+                        dest='field_number',
+                        default=1,
+                        help='Field / Column in file to use.  [default: 1]')
+    parser.add_argument('-o',
+                        '--out',
+                        metavar='STRING',
+                        dest='outfile_name',
+                        default=None,
+                        help='Out-file. [default: "stdout"]')
+
     # PANDAS
-    ## oParser.add_argument('-l', '--labels', 
-    ##                      dest='iLabel',
-    ##                      metavar="INT",
-    ##                      type=int,
-    ##                      default=None,
-    ##                      help='Column number to use as labels. [default: None]')
+    parser.add_argument('-l',
+                        '--labels',
+                        dest='label_number',
+                        metavar="INT",
+                        type=int,
+                        default=None,
+                        help='Column number to use as labels. [default: None]')
     # FOR CONFIG-FILE PARSING
-    ## oParser.add_argument('--config',
-    ##                      dest = 'sConfig',
-    ##                      metavar='CONFIG-FILE',
-    ##                      default='config.ini',
-    ##                      help='Config-file to read. [default: config.ini]')
-    
-    group1 = oParser.add_argument_group('Threading', 'Multithreading arguments:')
-  
-    group1.add_argument('-p', '--processes',
-                         metavar='INT',
-                         type=int,
-                         dest='iP',
-                         default=1,
-                         help='Number of sub-processes (workers) to use. It is only logical to not give more processes than cpus/cores are available. [default: 1]')
-    group1.add_argument('-t', '--time',
-                         action='store_true',
-                         dest='bTIME',
-                         default=False,
-                         help='Time the runtime and print to stderr. [default: False]')
-    
-    
-    oArgs = oParser.parse_args()
-    return oArgs, oParser
+    parser.add_argument('--config',
+                        dest='configfile_name',
+                        metavar='CONFIG-FILE',
+                        default='config.ini',
+                        help='Config-file to read. [default: config.ini]')
 
-def load_file(s):
+    group1 = parser.add_argument_group('Threading',
+                                       'Multithreading arguments:')
+
+    group1.add_argument(
+        '-p',
+        '--processes',
+        metavar='INT',
+        type=int,
+        dest='process_number',
+        default=1,
+        help=
+        'Number of sub-processes (workers) to use.'+\
+        ' It is only logical to not give more processes'+\
+        ' than cpus/cores are available. [default: 1]')
+    group1.add_argument(
+        '-t',
+        '--time',
+        action='store_true',
+        dest='show_runtime',
+        default=False,
+        help='Time the runtime and print to stderr. [default: False]')
+
+    args = parser.parse_args()
+    return args, parser
+
+
+def load_file(filename):
     """ LOADING FILES """
-    if s in ['-', 'stdin']:
-        oF = sys.stdin
-    elif s.split('.')[-1] == 'gz':
-        oF = gzip.open(s)
-    elif s.split('.')[-1] == 'bz2':
-        oF = bz2.BZFile(s)
-    elif s.split('.')[-1] == 'zip':
-        oF = zipfile.Zipfile(s)
+    if filename in ['-', 'stdin']:
+        filehandle = sys.stdin
+    elif filename.split('.')[-1] == 'gz':
+        filehandle = gzip.open(filename)
+    elif filename.split('.')[-1] == 'bz2':
+        filehandle = bz2.BZFile(filename)
+    elif filename.split('.')[-1] == 'zip':
+        filehandle = zipfile.Zipfile(filename)
     else:
-        oF = open(s)
-    return oF
+        filehandle = open(filename)
+    return filehandle
+
 
 def my_func(args):
     """
@@ -133,24 +164,28 @@ def my_func(args):
     time.sleep(0.2)
     return (args, res)
 
+
 def main():
-    oArgs, oParser = parse_cmdline()
+    """ The main funtion. """
+    args, parser = parse_cmdline()
 
     # get field number to use in infile
-    iF = oArgs.sFIELD - 1
-    if iF < 0: oParser.error('Field -f has to be an integer > 0. EXIT.')
-        
-    oF = load_file(oArgs.sFile)
+    field_number = args.field_number - 1
+    if field_number < 0:
+        parser.error('Field -f has to be an integer > 0. EXIT.')
 
-    if not oArgs.sOut:
-        oFout = sys.stdout
-    elif oArgs.sOut in ['-', 'stdout']:
-        oFout = sys.stdout
-    elif oArgs.sOut.split('.')[-1] == 'gz':
-        oFout = gzip.open(oArgs.sOut, 'wb')
+    fileobj = load_file(args.str_file)
+
+    # create outfile object
+    if not args.outfile_name:
+        outfileobj = sys.stdout
+    elif args.outfile_name in ['-', 'stdout']:
+        outfileobj = sys.stdout
+    elif args.outfile_name.split('.')[-1] == 'gz':
+        outfileobj = gzip.open(args.outfile_name, 'wb')
     else:
-        oFout = open(oArgs.sOut, 'w')
-        
+        outfileobj = open(args.outfile_name, 'w')
+
     # -------------------------------------------------------
     # USING a config parser
     # Read config file if it exists
@@ -158,112 +193,109 @@ def main():
     # [Classes]
     # c1 = 1
     # c2 = 3
-    ## from ConfigParser import SafeConfigParser  
-    ## dParams = {}
-    ## if os.path.isfile(oArgs.sConfig):
-    ##     oConfigParser = SafeConfigParser()
-    ##     oConfigParser.read(oArgs.sConfig)
-    ##     for section_name in oConfigParser.sections():
-    ##         for name, value in oConfigParser.items(section_name):
-    ##             dParams[name] = value                   
+    param_dict = {}
+    if os.path.isfile(args.configfile_name):
+        config_parser_obj = SafeConfigParser()
+        config_parser_obj.read(args.configfile_name)
+        for section_name in config_parser_obj.sections():
+            for name, value in config_parser_obj.items(section_name):
+                param_dict[name] = value
+    else:
+        sys.stderr.write('Could not load configfile: %s. EXIT.' % (args.configfile_name))
+        sys.exit()
     # -------------------------------------------------------
 
     # ------------------------------------------------------
     # PANDAS approach
     # Check labels
-    ## if oArgs.iLabel:
-    ##     if oArgs.iLabel <= 0:
-    ##         oParser.error('Label column number has to be > 0. EXIT.')
-    ##     iLabel = oArgs.iLabel - 1
-    ## else:
-    ##     iLabel = False
-    ## oDF = pd.read_csv(oF, sep=oArgs.sDEL, header=header, index_col=iLabel)
+    if args.label_number:
+        if args.label_number <= 0:
+            parser.error('Label column number has to be > 0. EXIT.')
+        label_number = args.label_number - 1
+    else:
+        label_number = False
+    data_frame = pd.read_csv(fileobj,
+                             sep=args.delimiter_str,
+                             index_col=label_number)
     # ------------------------------------------------------
-   
 
     # ------------------------------------------------------
     #  THREADING
     # ------------------------------------------------------
-    from timeit import default_timer as timer
-    from multiprocessing import Pool
-    
     # get number of subprocesses to use
-    iNofProcesses = oArgs.iP
-    if iNofProcesses<1: oParser.error('-p has to be > 0: EXIT.')
-       
-    #
+    process_number = args.process_number
+    if process_number < 1:
+        parser.error('-p has to be > 0: EXIT.')
+
     # FILL ARRAY WITH PARAMETER SETS TO PROCESS
     #
     # this array contains the total amount of jobs that has to be run
-    aJobs = []
+    job_list = []
 
     # e.g. read tasks from file
     # delimited file handler
-    oR = csv.reader(oF, delimiter = oArgs.sDEL)
-    if oArgs.bHead:
-        aH = oR.next()
-    for a in oR:
+    csv_reader_obj = csv.reader(fileobj, delimiter=args.delimiter_str)
+    if args.header_exists:
+        header_list = csv_reader_obj.next()
+    for row in csv_reader_obj:
         # EXAMPLE: 2 parameters = first two cols for my_func
         # EXAMPLE: TWO INTEGERS TO ADD UP
-        try: 
-            aJobs.append((int(a[0]), int(a[1])))
+        try:
+            job_list.append((int(row[0]), int(row[1])))
         except:
-            oParser.error('Need 2 integers in column 1 and 2 to add up.')
-    oF.close()
-            
-    # For timing
-    fStart_time = timer()  # very crude
-    # create pool of workers ---------------------
-    pool = Pool(processes=iNofProcesses)
+            parser.error('Need 2 integers in column 1 and 2 to add up.')
+    fileobj.close()
 
-    #====================================================================
+    # For timing
+    start_time = timer()  # very crude
+    # create pool of workers ---------------------
+    pool = Pool(processes=process_number)
+
     # "chunksize"" usually only makes a noticable performance
     # difference for very large iterables
     # Here I set it to one to get the progress bar working nicly
     # Otherwise it will not give me the correct number of processes left
     # but chunksize number.
     chunksize = 1
-    #====================================================================
-    aResults = pool.map_async(my_func, aJobs, chunksize=chunksize)
-    pool.close() # No more work
 
-    iNumJobs = len(aJobs)
+    result_list = pool.map_async(my_func, job_list, chunksize=chunksize)
+    pool.close()  # No more work
+
+    jobs_total = len(job_list)
     # Progress bar
     #==============================
     # This can be changed to make progressbar bigger or smaller
-    iProgressBarLength = 50
+    progress_bar_length = 50
     #==============================
-    while not aResults.ready():
-        iNumNotDone = aResults._number_left
-        iNumDone = iNumJobs-iNumNotDone
-        iBarDone = iNumDone*iProgressBarLength/iNumJobs
-        sBar = ('=' * iBarDone).ljust(iProgressBarLength)
-        iPercent = int(iNumDone*100/iNumJobs)
-        sys.stderr.write("JOBS (%i): [%s] %s%%\r" % (iNumJobs,
-                                                     sBar,
-                                                     str(iPercent).rjust(3)))
+    while not result_list.ready():
+        num_not_done = result_list._number_left
+        num_done = jobs_total - num_not_done
+        num_bar_done = num_done * progress_bar_length / jobs_total
+        bar_str = ('=' * num_bar_done).ljust(progress_bar_length)
+        percent = int(num_done * 100 / jobs_total)
+        sys.stderr.write("JOBS (%i): [%s] %s%%\r" % (jobs_total, bar_str,
+                                                     str(percent).rjust(3)))
         sys.stderr.flush()
         time.sleep(0.1)  # wait a bit: here we test all .1 secs
     # Finish the progress bar
-    sBar = '=' * iProgressBarLength
-    sys.stderr.write("JOBS (%i): [%s] 100%%\r" % (iNumJobs, sBar))
-    aResults = aResults.get()
+    bar_str = '=' * progress_bar_length
+    sys.stderr.write("JOBS (%i): [%s] 100%%\r" % (jobs_total, bar_str))
+    result_list = result_list.get()
     # --------------------------------------------
 
-    fEnd_time = timer()
-    if oArgs.bTIME: sys.stderr.write('RUNTIME(s): %.4f\n' %(fEnd_time - fStart_time))
+    end_time = timer()
+    if args.show_runtime:
+        sys.stderr.write('RUNTIME(s): %.4f\n' % (end_time - start_time))
 
     # Do stuff with the results
-    ## for res in aResults:
-    ##     oFout.write( '%s,%s:\t%s\n'%(str(res[0][0]),
-    ##                                  str(res[0][1]),
-    ##                                  str(res[1]) ))
+    for res in result_list:
+        outfileobj.write('%s,%s:\t%s\n' % (str(res[0][0]),
+                                           str(res[0][1]),
+                                           str(res[1])))
     # ------------------------------------------------------
-
-    oFout.close()
-   
+    outfileobj.close()
     return
-        
+
+
 if __name__ == '__main__':
     sys.exit(main())
-
