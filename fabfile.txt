@@ -1,104 +1,101 @@
+"""
+Template for fabric
+"""
 from __future__ import with_statement
-from fabric.api import *
-from fabric.colors import *
+from fabric.api import run, settings, puts, cd, lcd, local
+from fabric.colors import yellow, red
 
 #-- EDIT
-remote_base_dir = ''  # edit remote base dir path
-remote_err_file = ''  # edit path
-remote_log_file = ''  # edit path
+REMOTE_BASE_DIR = ''  # edit remote base dir path, where project/repo lives
+REMOTE_ERR_FILE = ''  # edit path
+REMOTE_LOG_FILE = ''  # edit path
+NAME = '{{name}}'
+GITURL = '{{giturl}}'
+
 
 #-- EDIT
 @hosts('')  # add remotes for deploy
 def logs():
+    """ Reading remote log files and print to stdout. """
     puts(yellow("[Reading log-file]"))
-    errout = run("cat %s"%remote_err_file)
-    logout = run("cat %s"%remote_log_file)
+    run("cat %s" % REMOTE_ERR_FILE)
+    run("cat %s" % REMOTE_LOG_FILE)
+
 
 #-- EDIT
-@hosts('') # only for deploy
+@hosts('')  # only for deploy
 def deploy():
-    module = '{{project}}'
-    
+    """ Deploy project to remote hosts. """
     with settings(warn_only=True):
-        if run("test -d %s/%s" %(remote_base_dir, module)).failed:
-            puts(red("[Module does not exist: %s]"%module))
-            with cd(remote_base_dir):
-                run("git clone git@github.com:sschmeier/{{project}}.git")
-                run("git submodule init")  # initialise submodules
-                
+        if run("test -d %s/%s" % (REMOTE_BASE_DIR, NAME)).failed:
+            puts(red("[Repo does not exist on remote: %s]" % NAME))
+            with cd(REMOTE_BASE_DIR):
+                run("git clone %s %s" % (GITURL, NAME))
+
     puts(yellow("[Write logs]"))
-    run("echo '-----------------------------' > %s"%remote_err_file)    
-    run("echo `date` >> %s"%remote_err_file)
-    run("echo '-----------------------------' >> %s"%remote_err_file)
-    run("echo '-----------------------------' > %s"%remote_log_file)    
-    run("echo `date` >> %s"%remote_log_file)
-    run("echo '-----------------------------' >> %s"%remote_log_file)
-                
-    puts(yellow("[Update module: %s]"%module))
-    with cd(remote_base_dir):
-        run("git pull")
-        run("git submodule update --remote --merge >> %s 2>> %s"%(remote_log_file, remote_err_file))
+    run("echo '-----------------------------' > %s" % REMOTE_ERR_FILE)
+    run("echo `date` >> %s" % REMOTE_ERR_FILE)
+    run("echo '-----------------------------' >> %s" % REMOTE_ERR_FILE)
+    run("echo '-----------------------------' > %s" % REMOTE_LOG_FILE)
+    run("echo `date` >> %s" % REMOTE_LOG_FILE)
+    run("echo '-----------------------------' >> %s" % REMOTE_LOG_FILE)
 
-def deploy_local(dir='~/Dropbox/Public', repo='{{project}}', name='{{project}}'):
+    puts(yellow("[Update repo: %s]" % NAME))
+    with cd(REMOTE_BASE_DIR):
+        run("git -C %s pull >> %s 2>> %s" %
+            (NAME, REMOTE_LOG_FILE, REMOTE_ERR_FILE))
+
+
+def deploy_local(localdir='~/Dropbox/Public'):
+    """ Deploy project to local """
     with settings(warn_only=True):
-        if local("test -d %s/%s" %(dir, name)).failed:
-            puts(red("[Repo does not exist in %s/%s: %s]"%(dir, name, repo)))
-            puts(yellow("[Cloning repo into %s/%s: %s]"%(dir, name, repo)))
-            with lcd(dir):
-                local('git clone git@github.com:sschmeier/%s.git %s'%(repo,name))
+        if local("test -d %s/%s" % (localdir, NAME)).failed:
+            puts(red("[Repo does not exist in %s/%s.]" % (localdir, NAME)))
+            puts(yellow("[Cloning repo into %s/%s.]" % (localdir, NAME)))
+            with lcd(localdir):
+                local('git clone %s %s' % (GITURL, NAME))
         else:
-            puts(yellow("[Pulling newest changes into %s/%s: %s]"%(dir, name, repo)))
-            with lcd(dir):
-                local("git -C %s pull"%(name))                
+            puts(yellow("[Pulling newest changes into %s/%s.]" % (localdir,
+                                                                  NAME)))
+            with lcd(localdir):
+                local("git -C %s pull" % (NAME))
 
-def git_setup(dir='.', repo='{{project}}', remote=False):
+
+def git_setup(localdir='.', flow=True, remote=False):
+    """
+    flow: use git-flow -> highly recommended
+    """
     # Setting up git repo
     with settings(warn_only=True):
-        if local("test -d %s/.git" %(dir)).failed:
+        if local("test -d %s/.git" % (localdir)).failed:
             puts(red("[Not a git repo]"))
-            puts(yellow("[Initialise git.]"))
-            local('git init')
-            local('git add -f .gitignore; git commit -m "Init."')
-            local('git co -b develop')
+            if flow:
+                puts(yellow("[Initialise git using git-flow]"))
+                local('git flow init -d')
+            else:
+                puts(yellow("[Initialise git.]"))
+                local('git init')
+                local('git co -b develop')
+
+            local('git add -f .gitignore; git commit -m "Added .gitignore"')
+
             if remote:
-                local('git remote add origin git@github.com:sschmeier/%s.git'%(repo))
+                puts(yellow("[Add git-remote.]"))
+                local('git remote add origin %s' % (GITURL))
         else:
             puts(red("[Git repo already exists]"))
-                
-def git_mp(branch="develop", push=0, ghpages=0, version=None):
-    # git merge push
-    # branch: the branch that should be merged into master.
+            if flow:
+                puts(yellow("[Initialise git-flow]"))
+                local('git flow init -d')
+            if remote:
+                puts(yellow("[Add git-remote.]"))
+                local('git remote add origin %s' % (GITURL))
 
+
+def git_update(branch='master', submodules=False):
+    """ Pull in changes from remote """
     with settings(warn_only=True):
-        local("git add -u && git commit")
-
-    local("git co master")
-    local("git merge %s --no-ff" %branch)
-
-    # add a new tag?
-    if version:
+        local("git pull origin %s" % (branch))
+    if submodules:
         with settings(warn_only=True):
-            local('git tag -a %s'%version)
-
-    # push to origin?
-    if push:
-        with settings(warn_only=True):
-            local("git push")
-
-    # update gh-pages?
-    if ghpages:
-        with settings(warn_only=True):
-            if not local("git co gh-pages").failed:
-                with settings(warn_only=True):
-                    local("git merge master")
-                if push:
-                    with settings(warn_only=True):
-                        local("git push origin gh-pages")
-
-    local("git co %s"%branch)
-
-def git_update():
-    with settings(warn_only=True):
-        local("git pull")
-    with settings(warn_only=True):
-        local("git submodule update --remote --merge")
+            local("git submodule update --remote --merge")
