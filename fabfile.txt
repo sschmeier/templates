@@ -14,7 +14,7 @@ GITURL = '{{giturl}}'
 
 
 #-- EDIT
-@hosts('')  # add remotes for deploy
+#@hosts('')  # add remotes for deploy
 def logs():
     """ Reading remote log files and print to stdout. """
     puts(yellow("[Reading log-file]"))
@@ -23,7 +23,7 @@ def logs():
 
 
 #-- EDIT
-@hosts('')  # only for deploy
+#@hosts('')  # only for deploy
 def deploy():
     """ Deploy project to remote hosts. """
     with settings(warn_only=True):
