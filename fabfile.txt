@@ -2,19 +2,20 @@
 Template for fabric
 """
 from __future__ import with_statement
-from fabric.api import run, settings, puts, cd, lcd, local
+from fabric.api import run, settings, puts, cd, lcd, local, hosts
 from fabric.colors import yellow, red
 
-#-- EDIT
-REMOTE_BASE_DIR = ''  # edit remote base dir path, where project/repo lives
-REMOTE_ERR_FILE = ''  # edit path
-REMOTE_LOG_FILE = ''  # edit path
-NAME = '{{name}}'
-GITURL = '{{giturl}}'
-
 
 #-- EDIT
-#@hosts('')  # add remotes for deploy
+HOST = '' # e.g. seb@bla.com
+REMOTE_BASE_DIR = ''  # absolute path, where project/repo lives
+REMOTE_ERR_FILE = ''  # absolute path
+REMOTE_LOG_FILE = ''  # absolute path
+REPO_NAME = '{{name}}'
+REPO_URL = '{{giturl}}'  # e.g. github url
+
+
+@hosts('%s' % HOST) # only for deploy to production
 def logs():
     """ Reading remote log files and print to stdout. """
     puts(yellow("[Reading log-file]"))
@@ -22,15 +23,16 @@ def logs():
     run("cat %s" % REMOTE_LOG_FILE)
 
 
-#-- EDIT
-#@hosts('')  # only for deploy
+@hosts('%s' % HOST) # only for deploy to production
 def deploy():
     """ Deploy project to remote hosts. """
+    remote_dir = os.path.abspath(os.path.join(REMOTE_BASE_DIR, REPO_NAME))
+    
     with settings(warn_only=True):
-        if run("test -d %s/%s" % (REMOTE_BASE_DIR, NAME)).failed:
-            puts(red("[Repo does not exist on remote: %s]" % NAME))
+        if run("test -d %s" % (remote_dir)).failed:
+            puts(red("[Repo %s does not exist on remote at: %s]" % (REPO_NAME, remote_dir)))
             with cd(REMOTE_BASE_DIR):
-                run("git clone %s %s" % (GITURL, NAME))
+                run("git clone %s %s" % (REPO_URL, REPO_NAME))
 
     puts(yellow("[Write logs]"))
     run("echo '-----------------------------' > %s" % REMOTE_ERR_FILE)
@@ -40,25 +42,26 @@ def deploy():
     run("echo `date` >> %s" % REMOTE_LOG_FILE)
     run("echo '-----------------------------' >> %s" % REMOTE_LOG_FILE)
 
-    puts(yellow("[Update repo: %s]" % NAME))
-    with cd(REMOTE_BASE_DIR):
-        run("git -C %s pull >> %s 2>> %s" %
-            (NAME, REMOTE_LOG_FILE, REMOTE_ERR_FILE))
+    puts(yellow("[Update repo: %s]" % REPO_NAME))
+    with cd(remote_dir):
+        run("git pull >> %s 2>> %s" %
+            (REMOTE_LOG_FILE, REMOTE_ERR_FILE))
 
 
 def deploy_local(localdir='~/Dropbox/Public'):
-    """ Deploy project to local """
+    """ Deploy project to local dropbox folder"""
+    local_dir = os.path.abspath(os.path.join(localdir, REPO_NAME))
     with settings(warn_only=True):
-        if local("test -d %s/%s" % (localdir, NAME)).failed:
-            puts(red("[Repo does not exist in %s/%s.]" % (localdir, NAME)))
-            puts(yellow("[Cloning repo into %s/%s.]" % (localdir, NAME)))
-            with lcd(localdir):
-                local('git clone %s %s' % (GITURL, NAME))
+        if local("test -d %s" % (local_dir)).failed:
+            puts(red("[Repo %s does not exist in %s.]" % (REPO_NAME, local_dir)))
+            puts(yellow("[Cloning repo %s into %s.]" % (REPO_NAME, local_dir)))
+            with lcd(local_dir):
+                local('git clone %s %s' % (REPO_URL, REPO_NAME))
         else:
-            puts(yellow("[Pulling newest changes into %s/%s.]" % (localdir,
-                                                                  NAME)))
-            with lcd(localdir):
-                local("git -C %s pull" % (NAME))
+            puts(yellow("[Pulling newest changes of repo %s into %s.]" %
+                        (REPO_NAME, local_dir)))
+            with lcd(local_dir):
+                local("git pull")
 
 
 def git_setup(localdir='.', flow=True, remote=False):
@@ -81,7 +84,7 @@ def git_setup(localdir='.', flow=True, remote=False):
 
             if remote:
                 puts(yellow("[Add git-remote.]"))
-                local('git remote add origin %s' % (GITURL))
+                local('git remote add origin %s' % (REPO_URL))
         else:
             puts(red("[Git repo already exists]"))
             if flow:
@@ -89,7 +92,7 @@ def git_setup(localdir='.', flow=True, remote=False):
                 local('git flow init -d')
             if remote:
                 puts(yellow("[Add git-remote.]"))
-                local('git remote add origin %s' % (GITURL))
+                local('git remote add origin %s' % (REPO_URL))
 
 
 def git_update(branch='master', submodules=False):
