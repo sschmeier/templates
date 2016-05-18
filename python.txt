@@ -285,7 +285,7 @@ def main():
 
     end_time = timer()
     if args.show_runtime:
-        sys.stderr.write('RUNTIME(s): %.4f\n' % (end_time - start_time))
+        sys.stderr.write('\nRUNTIME(s): %.4f\n' % (end_time - start_time))
 
     # Do stuff with the results
     for res in result_list:
