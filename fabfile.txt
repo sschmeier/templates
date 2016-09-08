@@ -71,34 +71,28 @@ def git_setup(localdir='.', flow=True, remote=False):
     # Setting up git repo
     with settings(warn_only=True):
         if local("test -d %s/.git" % (localdir)).failed:
-            puts(red("[Not a git repo]"))
-            if flow:
-                puts(yellow("[Initialise git using git-flow]"))
-                local('git flow init -d')
-            else:
-                puts(yellow("[Initialise git.]"))
-                local('git init')
-                local('git co -b develop')
+	    with cd(localdir):	   
+                puts(red("[Not a git repo]"))
+                if flow:
+                    puts(yellow("[Initialise git using git-flow]"))
+                    local('git flow init -d')
+                else:
+                    puts(yellow("[Initialise git.]"))
+                    local('git init')
+                    local('git co -b develop')
 
-            local('git add -f .gitignore; git commit -m "Added .gitignore"')
+                local('git add -f .gitignore; git commit -m "Added .gitignore"')
 
-            if remote:
-                puts(yellow("[Add git-remote.]"))
-                local('git remote add origin %s' % (REPO_URL))
+                if remote:
+                    puts(yellow("[Add git-remote.]"))
+                    local('git remote add origin %s' % (REPO_URL))
         else:
             puts(red("[Git repo already exists]"))
-            if flow:
-                puts(yellow("[Initialise git-flow]"))
-                local('git flow init -d')
-            if remote:
-                puts(yellow("[Add git-remote.]"))
-                local('git remote add origin %s' % (REPO_URL))
+	    with cd(localdir):	   
+                if flow:		   
+                    puts(yellow("[Initialise git-flow]"))
+                    local('git flow init -d')
+                if remote:
+                    puts(yellow("[Add git-remote.]"))
+                    local('git remote add origin %s' % (REPO_URL))
 
-
-def git_update(branch='master', submodules=False):
-    """ Pull in changes from remote """
-    with settings(warn_only=True):
-        local("git pull origin %s" % (branch))
-    if submodules:
-        with settings(warn_only=True):
-            local("git submodule update --remote --merge")

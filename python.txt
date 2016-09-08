@@ -290,13 +290,20 @@ def main():
 
     end_time = timer()
     if args.show_runtime:
-        sys.stderr.write('RUNTIME(s): %.4f\n' % (end_time - start_time))
-
+        sys.stderr.write('\nPROCESS-TIME: %.4f sec' % (end_time - start_time))
+	
+	
+    print_time_start = timer()
+    if args.show_runtime:
+        sys.stderr.write('\nWRITE-RESULTS...')
     # Do stuff with the results
     for res in result_list:
         outfileobj.write('%s,%s:\t%s\n' % (str(res[0][0]),
                                            str(res[0][1]),
                                            str(res[1])))
+    print_time_stop = timer()
+    if args.show_runtime:
+        sys.stderr.write(' %.4f sec\n' % (print_time_stop - print_time_start))		
     # ------------------------------------------------------
     outfileobj.close()
     return
