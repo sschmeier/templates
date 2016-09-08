@@ -220,13 +220,13 @@ $endfor$
 %% SEB %%
 %% if toc, make it on a newpage
 $if(toc)$
-\newpage
+%%\newpage
 {
 \hypersetup{linkcolor=$if(toccolor)$$toccolor$$else$black$endif$}
 \setcounter{tocdepth}{$toc-depth$}
 \tableofcontents
 }
-\newpage
+%%\newpage
 $endif$
 $if(lot)$
 \listoftables

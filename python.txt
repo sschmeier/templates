@@ -21,7 +21,7 @@ LICENCE
 =======
 2016, copyright {{author}} ({{email}}), {{url}}
 
-template version: 1.4 (2016/05/01)
+template version: 1.5 (2016/09/09)
 """
 from timeit import default_timer as timer
 from multiprocessing import Pool
@@ -273,13 +273,18 @@ def main():
         num_bar_done = num_done * progress_bar_length / jobs_total
         bar_str = ('=' * num_bar_done).ljust(progress_bar_length)
         percent = int(num_done * 100 / jobs_total)
-        sys.stderr.write("JOBS (%i): [%s] %s%%\r" % (jobs_total, bar_str,
-                                                     str(percent).rjust(3)))
+        sys.stderr.write("JOBS (%s): [%s] (%s) %s%%\r" % (str(num_not_done).rjust(len(str(jobs_total))),
+                                                          bar_str,
+                                                          str(num_done).rjust(len(str(jobs_total))),
+                                                          str(percent).rjust(3)))
+ 
         sys.stderr.flush()
         time.sleep(0.1)  # wait a bit: here we test all .1 secs
     # Finish the progress bar
     bar_str = '=' * progress_bar_length
-    sys.stderr.write("JOBS (%i): [%s] 100%%\r" % (jobs_total, bar_str))
+    sys.stderr.write("JOBS (%s): [%s] (%i) 100%%\n" % ('0'.rjust(len(str(jobs_total))),
+                                                       bar_str,
+                                                       jobs_total))
     result_list = result_list.get()
     # --------------------------------------------
 
