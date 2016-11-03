@@ -32,17 +32,19 @@
 %-------------------------------------------
 
 %% backaddress = address over the sender address...
-\KOMAoptions{fromalign=left, fromlogo=true, addrfield=true, backaddress=off, subject=titled, subject=left,foldmarks=on, fromphone=on,fromemail=true}
+\KOMAoptions{fromalign=left, fromlogo=false, addrfield=true, backaddress=off, subject=titled, subject=left,foldmarks=off, fromphone=off, fromemail=false, fontsize=11}
 
-\setkomavar{fromname}{Dr. Sebastian Schmeier}
-\setkomavar{signature}{Sebastian Schmeier}
-\setkomavar{fromaddress}{Massey University, INMS, Bld. 11\\Private Bag 102-904\\North Shore Mail Centre\\0745 Auckland, New Zealand }
-\setkomavar{fromphone}{+64 (0)  9 414 0800 (ext: 41541)}
+\setkomavar{fromname}{Sebastian Schmeier, PhD\\Lecturer in Bioinformatics/Genomics}
+\setkomavar{signature}{\includegraphics[width=2cm]{sig}\\Sebastian Schmeier}
+\setkomavar{fromaddress}{Institute of Natural and Mathematical Sciences\\Massey University Auckland, New Zealand\\P: +64 (0)  9 213 6538\\E: s.schmeier@massey.ac.nz\\W: http://sschmeier.com}
+
+\setkomavar{fromphone}{+64 (0)  9 213 6538}
 \setkomavar{fromemail}{s.schmeier@massey.ac.nz}
  %\setkomavar{fromfax}{}
 \setkomavar{subject}{Geneious software request}
 % CUSTOMER NUMBER
 %\setkomavar{customer}{2342}
+
 
 
 %\setkomavar{fromlogo}{\includegraphics[width=6cm]{Skelette.pdf}}
