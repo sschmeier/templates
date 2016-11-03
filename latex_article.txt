@@ -117,7 +117,11 @@ def main():
 %% BiB -----------------------------------------------------
 
 {\footnotesize
+%% needs latex_style.bst -> Last FS, Last FS (2016) Title...
+%\bibliographystyle{latex_style}
+%% natbib buildin
 \bibliographystyle{humannat}
+%% needs file refs.bib
 \bibliography{refs}
 }
 
