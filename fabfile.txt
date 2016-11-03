@@ -64,35 +64,37 @@ def deploy_local(localdir='~/Dropbox/Public'):
                 local("git pull")
 
 
-def git_setup(localdir='.', flow=True, remote=False):
+def github(branch, version=None):
+    """Execute local git cheackout master, merge branch into master and push to github.
+
+    Keyword arguments:
+    branch -- the branch that should be merged into master.
+    version -- new version/tag number requested this will create a repo tag.
+
+    Usage:
+    fab github:branch='new_feature',version='v1.2.5'
     """
-    flow: use git-flow -> highly recommended
-    """
-    # Setting up git repo
+
+    # co master and merge
+    puts(yellow("[Checkout master]"))
+    local("git checkout master")
+
+    puts(yellow("[Merge branch '%s' into master]"%branch))
+    local("git merge %s --no-ff" %branch)
+
     with settings(warn_only=True):
-        if local("test -d %s/.git" % (localdir)).failed:
-	    with cd(localdir):	   
-                puts(red("[Not a git repo]"))
-                if flow:
-                    puts(yellow("[Initialise git using git-flow]"))
-                    local('git flow init -d')
-                else:
-                    puts(yellow("[Initialise git.]"))
-                    local('git init')
-                    local('git co -b develop')
+        if version:
+            puts(yellow("[Bump version: %s]"%version))
+            # bump version number: project specific
+            local("sed -i '' 's/v.\..\../%s/g' config.json" %version)
+            # add config.json and commit
+            local("git add config.json")
+            local('git commit -m "Bumped to %s"' %version)
 
-                local('git add -f .gitignore; git commit -m "Added .gitignore"')
+            # add tag
+            puts(yellow("[Tag new version: %s]"%version))
+            local('git tag -a %s'%version)
 
-                if remote:
-                    puts(yellow("[Add git-remote.]"))
-                    local('git remote add origin %s' % (REPO_URL))
-        else:
-            puts(red("[Git repo already exists]"))
-	    with cd(localdir):	   
-                if flow:		   
-                    puts(yellow("[Initialise git-flow]"))
-                    local('git flow init -d')
-                if remote:
-                    puts(yellow("[Add git-remote.]"))
-                    local('git remote add origin %s' % (REPO_URL))
-
+    # deploy
+    puts(yellow("[Deploy to origin]"))
+    local("git push origin master")
