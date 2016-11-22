@@ -1,4 +1,4 @@
-# list all targets
+# list all rules/targets
 .PHONY: list
 list:
 		@$(MAKE) -pRrq -f $(lastword $(MAKEFILE_LIST)) : 2>/dev/null | awk -v RS= -F: '/^# File/,/^# Finished Make data base/ {if ($$1 !~ "^[#.]") {print $$1}}' | sort | egrep -v -e '^[^[:alnum:]]' -e '^$@$$'
@@ -14,3 +14,16 @@ rmdata :
 storedata :
 		now=$$(date +"%Y-%m-%d_%H%M%S"); mkdir data/$$now; cp -r data/current/* data/$$now;
 
+
+# apply some rule on all files in a dir
+# find sources
+SRCS=$(shell find md -name '*.md')
+# for each src there should be a target
+TARGETS=$(subst md,html,$(SRCS))
+# program flags
+FLAGS = -f markdown -t html5 -c pandoc-html5.css
+
+html: $(TARGETS)
+
+html/%.html : md/%.md
+					pandoc $(FLAGS) -o $@ $<

@@ -21,7 +21,7 @@ LICENCE
 =======
 2016, copyright {{author}} ({{email}}), {{url}}
 
-template version: 1.5 (2016/09/09)
+template version: 1.6 (2016/11/09)
 """
 from timeit import default_timer as timer
 from multiprocessing import Pool
@@ -131,6 +131,11 @@ def parse_cmdline():
         default=False,
         help='Time the runtime and print to stderr. [default: False]')
 
+    # if no arguments supplied print help
+    if len(sys.argv)==1:
+        parser.print_help()
+        sys.exit(1)
+    
     args = parser.parse_args()
     return args, parser
 
