@@ -13,6 +13,7 @@ REMOTE_ERR_FILE = ''  # absolute path
 REMOTE_LOG_FILE = ''  # absolute path
 REPO_NAME = '{{name}}'
 REPO_URL = '{{giturl}}'  # e.g. github url
+REPO_BRANCH = '{{branch}}'
 
 
 @hosts('%s' % HOST) # only for deploy to production
@@ -32,7 +33,7 @@ def deploy():
         if run("test -d %s" % (remote_dir)).failed:
             puts(red("[Repo %s does not exist on remote at: %s]" % (REPO_NAME, remote_dir)))
             with cd(REMOTE_BASE_DIR):
-                run("git clone %s %s" % (REPO_URL, REPO_NAME))
+                run("git clone -b %s %s %s" % (REPO_BRANCH, REPO_URL, REPO_NAME))
 
     puts(yellow("[Write logs]"))
     run("echo '-----------------------------' > %s" % REMOTE_ERR_FILE)
@@ -44,8 +45,8 @@ def deploy():
 
     puts(yellow("[Update repo: %s]" % REPO_NAME))
     with cd(remote_dir):
-        run("git pull >> %s 2>> %s" %
-            (REMOTE_LOG_FILE, REMOTE_ERR_FILE))
+        run("git pull origin %s >> %s 2>> %s" %
+            (REPO_BRANCH, REMOTE_LOG_FILE, REMOTE_ERR_FILE))
 
 
 def deploy_local(localdir='~/Dropbox/Public'):
@@ -56,12 +57,12 @@ def deploy_local(localdir='~/Dropbox/Public'):
             puts(red("[Repo %s does not exist in %s.]" % (REPO_NAME, local_dir)))
             puts(yellow("[Cloning repo %s into %s.]" % (REPO_NAME, local_dir)))
             with lcd(local_dir):
-                local('git clone %s %s' % (REPO_URL, REPO_NAME))
+                local('git clone -b %s %s %s' % (REPO_BRANCH, REPO_URL, REPO_NAME))
         else:
-            puts(yellow("[Pulling newest changes of repo %s into %s.]" %
-                        (REPO_NAME, local_dir)))
+            puts(yellow("[Pulling newest changes of branch %s of repo %s into %s.]" %
+                        (REPO_BRANCH, REPO_NAME, local_dir)))
             with lcd(local_dir):
-                local("git pull")
+                local("git pull origin %s" % REPO_BRANCH)
 
 
 def git(br, v=None):
