@@ -15,6 +15,7 @@ storedata :
 		now=$$(date +"%Y-%m-%d_%H%M%S"); mkdir data/$$now; cp -r data/current/* data/$$now;
 
 
+## PANDOC example --------------
 # apply some rule on all files in a dir
 # find sources
 SRCS=$(shell find md -name '*.md')
@@ -26,4 +27,27 @@ FLAGS = -f markdown -t html5 -c pandoc-html5.css
 html: $(TARGETS)
 
 html/%.html : md/%.md
-					pandoc $(FLAGS) -o $@ $<
+		pandoc $(FLAGS) -o $@ $<
+
+
+# LATEX DOCUMENTATION ----------
+filenamebase=documentation
+
+pdf:
+        cd doc
+        pdflatex ${filenamebase}
+        bibtex ${filenamebase}||true
+        pdflatex ${filenamebase}
+        pdflatex ${filenamebase}
+
+evince:
+        evince doc/${filenamebase}.pdf &
+
+aread:
+        acroread doc/${filenamebase}.pdf &
+
+prev:
+        open -a Preview doc/${filenamebase}.pdf &
+
+cleantex:
+        rm -f doc/${filenamebase}.{ps,pdf,log,aux,out,dvi,bbl,blg}

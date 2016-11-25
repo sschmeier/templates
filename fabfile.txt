@@ -87,9 +87,9 @@ def git(br, v=None):
         if v:
             puts(yellow("[Bump version: %s]"%v))
             # bump version number: project specific
-            local("sed -i '' 's/v.\..\../%s/g' config.json" %v)
+            local("sed -i '' 's/v.\..\../%s/g' VERSION" %v)
             # add config.json and commit
-            local("git add config.json")
+            local("git add VERSION")
             local('git commit -m "Bumped to %s"' %v)
 
             # add tag
