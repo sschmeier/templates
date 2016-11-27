@@ -4,31 +4,46 @@ Template for fabric
 from __future__ import with_statement
 from fabric.api import run, settings, puts, cd, lcd, local, hosts
 from fabric.colors import yellow, red
-
+from fabric.operations import prompt
+import os.path
 
 #-- EDIT
 HOST = '' # e.g. seb@bla.com
 REMOTE_BASE_DIR = ''  # absolute path, where project/repo lives
 REMOTE_ERR_FILE = ''  # absolute path
 REMOTE_LOG_FILE = ''  # absolute path
-REPO_NAME = '{{name}}'
-REPO_URL = '{{giturl}}'  # e.g. github url
-REPO_BRANCH = '{{branch}}'
+REPO_NAME = '{{PROJECT_NAME}}'  # basename of project
+REPO_URL = ''  # e.g. github url
+REPO_BRANCH = ''  # this is the branch to clone on hosts
 
-
+##-- Methods for fabric    
 @hosts('%s' % HOST) # only for deploy to production
 def logs():
     """ Reading remote log files and print to stdout. """
     puts(yellow("[Reading log-file]"))
-    run("cat %s" % REMOTE_ERR_FILE)
     run("cat %s" % REMOTE_LOG_FILE)
+    puts(yellow("[Reading err-file]"))
+    run("cat %s" % REMOTE_ERR_FILE)
 
 
 @hosts('%s' % HOST) # only for deploy to production
-def deploy():
-    """ Deploy project to remote hosts. """
+def deploy(activate_env=False, conda=None):
+    """
+    Deploy project to remote hosts.
+
+    activate : Activate a environment before pulling changes on host.
+    conda : name of conda environment to activate.
+    """
     remote_dir = os.path.abspath(os.path.join(REMOTE_BASE_DIR, REPO_NAME))
-    
+
+    if activate_env:
+        if conda:
+            puts(yellow("[Activate conda env]"))
+            run('source activate %s' %(conda))
+        else:
+            puts(yellow("[Activate env in through ~/bin/activate]"))
+            run('source ~/bin/activate')
+
     with settings(warn_only=True):
         if run("test -d %s" % (remote_dir)).failed:
             puts(red("[Repo %s does not exist on remote at: %s]" % (REPO_NAME, remote_dir)))
@@ -54,22 +69,23 @@ def deploy_local(localdir='~/Dropbox/Public'):
     local_dir = os.path.abspath(os.path.join(localdir, REPO_NAME))
     with settings(warn_only=True):
         if local("test -d %s" % (local_dir)).failed:
-            puts(red("[Repo %s does not exist in %s.]" % (REPO_NAME, local_dir)))
-            puts(yellow("[Cloning repo %s into %s.]" % (REPO_NAME, local_dir)))
+            puts(red("[Repo %s does not exist in %s]" % (REPO_NAME, local_dir)))
+            puts(yellow("[Cloning repo %s into %s]" % (REPO_NAME, local_dir)))
             with lcd(local_dir):
                 local('git clone -b %s %s %s' % (REPO_BRANCH, REPO_URL, REPO_NAME))
         else:
-            puts(yellow("[Pulling newest changes of branch %s of repo %s into %s.]" %
+            puts(yellow("[Pulling newest changes of branch %s of repo %s into %s]" %
                         (REPO_BRANCH, REPO_NAME, local_dir)))
             with lcd(local_dir):
                 local("git pull origin %s" % REPO_BRANCH)
 
 
-def git(br, v=None):
+def git(br, to_br='master', v=None):
     """Execute local git cheackout master, merge branch into master and push to remote.
 
     Keyword arguments:
-    br -- the branch that should be merged into master.
+    br -- the branch that should be merged into 'to_br'
+    to_br -- branch to merge to (defaults to master).
     v -- new version/tag number requested this will create a repo tag.
 
     Usage:
@@ -77,25 +93,27 @@ def git(br, v=None):
     """
 
     # co master and merge
-    puts(yellow("[Checkout master]"))
-    local("git checkout master")
+    puts(yellow("[Checkout branch %s]"%(to_br)))
+    local("git checkout %s"%(to_br))
 
-    puts(yellow("[Merge branch '%s' into master]"%br))
+    puts(yellow('[Merge branch "%s" into %s]'%(br,to_br)))
     local("git merge %s --no-ff" %br)
 
     with settings(warn_only=True):
         if v:
             puts(yellow("[Bump version: %s]"%v))
             # bump version number: project specific
-            local("sed -i '' 's/v.\..\../%s/g' VERSION" %v)
+            local("sed -i '' 's/v.\..\../%s/g' VERSION.txt" %v)
             # add config.json and commit
-            local("git add VERSION")
+            local("git add VERSION.txt")
             local('git commit -m "Bumped to %s"' %v)
 
             # add tag
             puts(yellow("[Tag new version: %s]"%v))
             local('git tag -a %s'%v)
 
-    # deploy
-    puts(yellow("[Deploy to origin]"))
-    local("git push origin master")
+    answer = prompt("Push to remote?", default='y')
+    if answer == 'y':
+        answer = prompt("Remote name?", default='origin')
+        puts(yellow("[Push %s to remote %s]"%(to_br,answer)))
+        local("git push %s %s"%(answer, to_br))
