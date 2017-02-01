@@ -39,10 +39,37 @@ import zipfile
 import time
 import pandas as pd  ## non standard library to be imported
 
+try:
+    from colorama import init, Fore, Style
+except ImportError:
+    sys.stderr.write('colorama lib needed.\n')
+    sys.exit(1)
+
 # When piping stdout into head python raises an exception
 # Ignore SIG_PIPE and don't throw exceptions on it...
 # (http://docs.python.org/library/signal.html)
 signal(SIGPIPE, SIG_DFL)
+
+
+# INIT color
+# Initialise colours for multi-platform support.
+init()
+
+# Initialise input for multi-version support.
+try:
+    input = raw_input
+except NameError:
+    pass
+
+def red(text):
+    return '%s%s%s' % (Fore.RED, text, Fore.RESET)
+def yellow(text):
+    return '%s%s%s' % (Fore.YELLOW, text, Fore.RESET)
+def cyan(text):
+    return '%s%s%s' % (Fore.CYAN, text, Fore.RESET)
+def err(text, exit=False):
+    sys.stderr.write(red('%s\n'%text))
+    if exit: sys.exit(1)
 
 __version__ = '{{version}}'
 __date__ = '{{date}}'
@@ -206,8 +233,7 @@ def main():
             for name, value in config_parser_obj.items(section_name):
                 param_dict[name] = value
     else:
-        sys.stderr.write('Could not load configfile: %s. EXIT.' % (args.configfile_name))
-        sys.exit()
+        err('Could not load configfile: %s. EXIT.' % (args.configfile_name), True)
     # -------------------------------------------------------
 
     # ------------------------------------------------------
@@ -278,29 +304,29 @@ def main():
         num_bar_done = num_done * progress_bar_length / jobs_total
         bar_str = ('=' * num_bar_done).ljust(progress_bar_length)
         percent = int(num_done * 100 / jobs_total)
-        sys.stderr.write("JOBS (%s): [%s] (%s) %s%%\r" % (str(num_not_done).rjust(len(str(jobs_total))),
+        sys.stderr.write(yellow("JOBS (%s): [%s] (%s) %s%%\r" % (str(num_not_done).rjust(len(str(jobs_total))),
                                                           bar_str,
                                                           str(num_done).rjust(len(str(jobs_total))),
-                                                          str(percent).rjust(3)))
+                                                          str(percent).rjust(3))))
  
         sys.stderr.flush()
         time.sleep(0.1)  # wait a bit: here we test all .1 secs
     # Finish the progress bar
     bar_str = '=' * progress_bar_length
-    sys.stderr.write("JOBS (%s): [%s] (%i) 100%%\n" % ('0'.rjust(len(str(jobs_total))),
+    sys.stderr.write(yellow("JOBS (%s): [%s] (%i) 100%%\n" % ('0'.rjust(len(str(jobs_total))),
                                                        bar_str,
-                                                       jobs_total))
+                                                       jobs_total)))
     result_list = result_list.get()
     # --------------------------------------------
 
     end_time = timer()
     if args.show_runtime:
-        sys.stderr.write('\nPROCESS-TIME: %.4f sec' % (end_time - start_time))
+        sys.stderr.write(cyan('\nPROCESS-TIME: %.4f sec' % (end_time - start_time)))
 	
 	
     print_time_start = timer()
     if args.show_runtime:
-        sys.stderr.write('\nWRITE-RESULTS...')
+        sys.stderr.write(cyan('\nWRITE-RESULTS...'))
     # Do stuff with the results
     for res in result_list:
         outfileobj.write('%s,%s:\t%s\n' % (str(res[0][0]),
@@ -308,7 +334,7 @@ def main():
                                            str(res[1])))
     print_time_stop = timer()
     if args.show_runtime:
-        sys.stderr.write(' %.4f sec\n' % (print_time_stop - print_time_start))		
+        sys.stderr.write(cyan(' %.4f sec\n' % (print_time_stop - print_time_start)))
     # ------------------------------------------------------
     outfileobj.close()
     return

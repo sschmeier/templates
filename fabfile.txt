@@ -1,23 +1,44 @@
 """
-Template for fabric
+Template for fabric.
+
+Usage:
+fab test deploy
+fab prod deploy
 """
 from __future__ import with_statement
-from fabric.api import run, settings, puts, cd, lcd, local, hosts
+from fabric.api import run, settings, puts, cd, lcd, local, hosts, env
 from fabric.colors import yellow, red
 from fabric.operations import prompt
+from fabric.contrib.project import rsync_project
 import os.path
 
-#-- EDIT
-HOST = '' # e.g. seb@bla.com
+#-- EDIT --------------------------------------------------------
 REMOTE_BASE_DIR = ''  # absolute path, where project/repo lives
 REMOTE_ERR_FILE = ''  # absolute path
 REMOTE_LOG_FILE = ''  # absolute path
-REPO_NAME = '{{PROJECT_NAME}}'  # basename of project
+
+# For github/lab deployment
+REPO_NAME = '{{PROJECT_NAME}}'  # basename of project for git
 REPO_URL = ''  # e.g. github url
 REPO_BRANCH = ''  # this is the branch to clone on hosts
 
+# for jekyll projects
+# Will be build into specified folder, using specifed config file
+JEKYLL_CONFIG_FILE = ''
+JEKYLL_LOCAL_DIR = ''
+
+
+def test():
+    env.user = ''  # e.g. seb
+    env.hosts = ['']  # e.g. seb@bla.com
+
+    
+def prod():
+    env.user = ''
+    env.hosts = ['']
+#---------------------------------------------------------------
+    
 ##-- Methods for fabric    
-@hosts('%s' % HOST) # only for deploy to production
 def logs():
     """ Reading remote log files and print to stdout. """
     puts(yellow("[Reading log-file]"))
@@ -25,8 +46,7 @@ def logs():
     puts(yellow("[Reading err-file]"))
     run("cat %s" % REMOTE_ERR_FILE)
 
-
-@hosts('%s' % HOST) # only for deploy to production
+    
 def deploy(activate_env=False, conda=None):
     """
     Deploy project to remote hosts.
@@ -80,6 +100,18 @@ def deploy_local(localdir='~/Dropbox/Public'):
                 local("git pull origin %s" % REPO_BRANCH)
 
 
+def deploy_jekyll():
+    """ Jekyll build and rsync to remote. """
+    puts(yellow("[Jekyll build]"))
+    local("jekyll build --config %s -d %s"%(JEKYLL_CONFIG_FILE, JEKYLL_LOCAL_DIR))
+
+    puts(yellow("[rsync new build to remote]"))
+    rsync_project(local_dir=JEKYLL_LOCAL_DIR, remote_dir=REMOTE_BASE_DIR, exclude=['.git',"public"], delete=True)
+
+    puts(yellow("[Delete local Jekyll build]"))
+    local("rm -r %s" % JEKYLL_LOCAL_DIR)
+    
+            
 def git(br, to_br='master', v=None):
     """Execute local git cheackout master, merge branch into master and push to remote.
 
