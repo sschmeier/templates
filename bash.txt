@@ -2,7 +2,7 @@
 
 # ##################################################
 #
-version="0.0.1"              # Sets version variable
+version="0.0.1"              
 #
 # HISTORY:
 #
@@ -10,11 +10,19 @@ version="0.0.1"              # Sets version variable
 #
 # ##################################################
 
-# DO things HERE
+# DO things HERE =============================
 function mainScript() {
     echo -n
-    #echo ${args[@]}
+    info "Arguments are:" ${args[@]}
+  
+    # check if right number of arguments
+    if test ${#args[@]} -ne 2; then
+        usage;
+        die "Script expects 2 arguments.";
+    fi
 }
+# ============================================
+
 
 function trapCleanup() {
   echo ""
@@ -49,13 +57,13 @@ function _alert() {
 
   # Print to console when script is not 'quiet'
   if ${quiet}; then return; else
-   echo -e "$(date +"%r") ${color}$(printf "[%7s]" "${1}") ${_message}${reset}";
+    echo -e "$(date +"%H:%M:%S") ${color}$(printf "[%7s]" "${1}") ${_message}${reset}";
   fi
 
   # Print to Logfile
   if ${printLog} && [ "${1}" != "input" ]; then
     color=""; reset="" # Don't use colors in logs
-    echo -e "$(date +"%m-%d-%Y %r") $(printf "[%7s]" "${1}") ${_message}" >> "${logFile}";
+    echo -e "$(date +"%Y%m%d-%H:%M:%S") $(printf "[%7s]" "${1}") ${_message}" >> "${logFile}";
   fi
 }
 
@@ -74,12 +82,13 @@ function verbose()    { if ${verbose}; then debug "$@"; fi }
 # ----------------------
 scriptName=$(basename "$0")
 
-# Set Flags
+# Set default flags
 quiet=false
 printLog=false
 verbose=false
 strict=false
 debug=false
+processes=4
 args=()
 
 # Set Colors
@@ -101,7 +110,7 @@ tmpDir="/tmp/${scriptName}.$RANDOM.$RANDOM.$RANDOM.$$"
 # Logging
 # -----------------------------------
 # Log is only used when the '-l' flag is set.
-logFile="${scriptBasename}.log"
+logFile="${scriptName}-$(date +"%Y%m%d-%H%M%S").log"
 
 
 # Options and Usage
@@ -111,7 +120,7 @@ usage() {
 
 This is a script template.  Edit this description to print help to users.
 
- ${bold}Options:${reset}
+ ${bold}General Options:${reset}
   -q, --quiet       Quiet (no output)
   -l, --log         Print log to file
   -s, --strict      Exit script with null variables.  i.e 'set -o nounset'
@@ -119,6 +128,10 @@ This is a script template.  Edit this description to print help to users.
   -d, --debug       Runs script in BASH debug mode (set -x)
   -h, --help        Display this help and exit
       --version     Output version information and exit
+
+ ${bold}Specific Options:${reset}
+  -p NUM            Number of processes to use. [default=4]
+
 "
 }
 
@@ -172,6 +185,7 @@ while [[ $1 = -?* ]]; do
     -q|--quiet) quiet=true ;;
     -s|--strict) strict=true;;
     -d|--debug) debug=true;;
+    -p) shift; processes=$1;;
     --endopts) shift; break ;;
     *) die "invalid option: '$1'." ;;
   esac
