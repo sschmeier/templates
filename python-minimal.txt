@@ -19,9 +19,9 @@ VERSION HISTORY
 
 LICENCE
 =======
-2016, copyright {{author}} ({{email}}), {{url}}
+2017, copyright {{author}} ({{email}}), {{url}}
 
-template version: 1.7 (2017/03/25)
+template version: 1.8 (2017/10/06)
 """
 from signal import signal, SIGPIPE, SIG_DFL
 import sys
@@ -35,6 +35,16 @@ import bz2
 import zipfile
 import time
 
+try:
+    from colorama import init, Fore, Style
+except ImportError:
+    sys.stderr.write('colorama lib needed.\n')
+    sys.exit(1)
+
+# INIT color
+# Initialise colours for multi-platform support.
+init()
+
 # When piping stdout into head python raises an exception
 # Ignore SIG_PIPE and don't throw exceptions on it...
 # (http://docs.python.org/library/signal.html)
@@ -46,6 +56,23 @@ __email__ = '{{email}}'
 __author__ = '{{author}}'
 
 
+def alert(atype, text, log):
+    d = {'success': Fore.GREEN, 'error': Fore.RED, 'warning': Fore.YELLOW, 'info':''}
+    textout = '%s [%s] %s\n' % (time.strftime('%Y%m%d-%H:%M:%S'),
+                                atype.rjust(7),
+                                text)
+    log.write('%s%s%s' % (d[atype], textout, Fore.RESET))
+    if atype=='error': sys.exit()
+def success(text, log=sys.stderr):
+    alert('success', text, log)
+def error(text, log=sys.stderr):
+    alert('error', text, log)
+def warning(text, log=sys.stderr):
+    alert('warning', text, log)
+def info(text, log=sys.stderr):
+    alert('info', text, log)    
+
+    
 def parse_cmdline():
     """ Parse command-line args. """
     ## parse cmd-line -----------------------------------------------------------
@@ -105,7 +132,10 @@ def main():
     """ The main funtion. """
     args, parser = parse_cmdline()
 
-    fileobj = load_file(args.str_file)
+    try:
+        fileobj = load_file(args.str_file)
+    except:
+        error('Could not load file. EXIT.')
 
     # create outfile object
     if not args.outfile_name:
@@ -120,6 +150,7 @@ def main():
 
     # delimited file handler
     csv_reader_obj = csv.reader(fileobj, delimiter=args.delimiter_str)
+    
     # WORK FROM HERE:
 
     # ------------------------------------------------------

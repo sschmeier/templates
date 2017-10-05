@@ -19,9 +19,9 @@ VERSION HISTORY
 
 LICENCE
 =======
-2016, copyright {{author}} ({{email}}), {{url}}
+2017, copyright {{author}} ({{email}}), {{url}}
 
-template version: 1.6 (2016/11/09)
+template version: 1.8 (2017/10/06)
 """
 from timeit import default_timer as timer
 from multiprocessing import Pool
@@ -45,15 +45,15 @@ except ImportError:
     sys.stderr.write('colorama lib needed.\n')
     sys.exit(1)
 
+# INIT color
+# Initialise colours for multi-platform support.
+init()
+
 # When piping stdout into head python raises an exception
 # Ignore SIG_PIPE and don't throw exceptions on it...
 # (http://docs.python.org/library/signal.html)
 signal(SIGPIPE, SIG_DFL)
 
-
-# INIT color
-# Initialise colours for multi-platform support.
-init()
 
 # Initialise input for multi-version support.
 try:
@@ -61,15 +61,21 @@ try:
 except NameError:
     pass
 
-def red(text):
-    return '%s%s%s' % (Fore.RED, text, Fore.RESET)
-def yellow(text):
-    return '%s%s%s' % (Fore.YELLOW, text, Fore.RESET)
-def cyan(text):
-    return '%s%s%s' % (Fore.CYAN, text, Fore.RESET)
-def err(text, exit=False):
-    sys.stderr.write(red('%s\n'%text))
-    if exit: sys.exit(1)
+def alert(atype, text, log):
+    d = {'success': Fore.GREEN, 'error': Fore.RED, 'warning': Fore.YELLOW, 'info':''}
+    textout = '%s [%s] %s\n' % (time.strftime('%Y%m%d-%H:%M:%S'),
+                                atype.rjust(7),
+                                text)
+    log.write('%s%s%s' % (d[atype], textout, Fore.RESET))
+    if atype=='error': sys.exit()
+def success(text, log=sys.stderr):
+    alert('success', text, log)
+def error(text, log=sys.stderr):
+    alert('error', text, log)
+def warning(text, log=sys.stderr):
+    alert('warning', text, log)
+def info(text, log=sys.stderr):
+    alert('info', text, log)    
 
 __version__ = '{{version}}'
 __date__ = '{{date}}'
@@ -233,7 +239,7 @@ def main():
             for name, value in config_parser_obj.items(section_name):
                 param_dict[name] = value
     else:
-        err('Could not load configfile: %s. EXIT.' % (args.configfile_name), True)
+        error('Could not load configfile: %s. EXIT.' % (args.configfile_name), True)
     # -------------------------------------------------------
 
     # ------------------------------------------------------
@@ -321,12 +327,12 @@ def main():
 
     end_time = timer()
     if args.show_runtime:
-        sys.stderr.write(cyan('\nPROCESS-TIME: %.4f sec' % (end_time - start_time)))
+        info('\nPROCESS-TIME: %.4f sec' % (end_time - start_time))
 	
 	
     print_time_start = timer()
     if args.show_runtime:
-        sys.stderr.write(cyan('\nWRITE-RESULTS...'))
+        info('\nWRITE-RESULTS...')
     # Do stuff with the results
     for res in result_list:
         outfileobj.write('%s,%s:\t%s\n' % (str(res[0][0]),
@@ -334,7 +340,7 @@ def main():
                                            str(res[1])))
     print_time_stop = timer()
     if args.show_runtime:
-        sys.stderr.write(cyan(' %.4f sec\n' % (print_time_stop - print_time_start)))
+       info(' %.4f sec\n' % (print_time_stop - print_time_start))
     # ------------------------------------------------------
     outfileobj.close()
     return
