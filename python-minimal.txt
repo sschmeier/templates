@@ -35,16 +35,6 @@ import bz2
 import zipfile
 import time
 
-try:
-    from colorama import init, Fore, Style
-except ImportError:
-    sys.stderr.write('colorama lib needed.\n')
-    sys.exit(1)
-
-# INIT color
-# Initialise colours for multi-platform support.
-init()
-
 # When piping stdout into head python raises an exception
 # Ignore SIG_PIPE and don't throw exceptions on it...
 # (http://docs.python.org/library/signal.html)
@@ -55,22 +45,38 @@ __date__ = '{{date}}'
 __email__ = '{{email}}'
 __author__ = '{{author}}'
 
+# For color handling on the shell
+try:
+    from colorama import init, Fore, Style
+    # INIT color
+    # Initialise colours for multi-platform support.
+    init()
+    reset=Fore.RESET
+    colors = {'success': Fore.GREEN, 'error': Fore.RED, 'warning': Fore.YELLOW, 'info':''}
+except ImportError:
+    sys.stderr.write('colorama lib desirable. Install with "conda install colorama".\n\n')
+    reset=''
+    colors = {'success': '', 'error': '', 'warning': '', 'info':''}
 
 def alert(atype, text, log):
     d = {'success': Fore.GREEN, 'error': Fore.RED, 'warning': Fore.YELLOW, 'info':''}
     textout = '%s [%s] %s\n' % (time.strftime('%Y%m%d-%H:%M:%S'),
                                 atype.rjust(7),
                                 text)
-    log.write('%s%s%s' % (d[atype], textout, Fore.RESET))
+    log.write('%s%s%s' % (colors[atype], textout, reset))
     if atype=='error': sys.exit()
+        
 def success(text, log=sys.stderr):
     alert('success', text, log)
+    
 def error(text, log=sys.stderr):
     alert('error', text, log)
+    
 def warning(text, log=sys.stderr):
     alert('warning', text, log)
+    
 def info(text, log=sys.stderr):
-    alert('info', text, log)    
+    alert('info', text, log)  
 
     
 def parse_cmdline():
